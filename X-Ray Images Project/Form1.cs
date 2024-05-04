@@ -1,150 +1,3 @@
-//namespace X_Ray_Images_Project
-//{
-//    public partial class Form1 : Form
-//    {
-//        public Form1()
-//        {
-//            InitializeComponent();
-//        }
-
-//        private void button1_Click(object sender, EventArgs e)
-//        {
-//            OpenFileDialog openFileDialog = new OpenFileDialog();
-//            openFileDialog.Filter = "Image Files (*.jpg, *.png)|*.jpg;*.png";
-
-//            if (openFileDialog.ShowDialog() == DialogResult.OK)
-//            {
-//                try
-//                {
-//                    string imageLocation = openFileDialog.FileName;
-//                    inputImage.ImageLocation = imageLocation;
-//                }
-//                catch (Exception ex)
-//                {
-//                    MessageBox.Show($"An error occurred: {ex.Message}");
-//                }
-//            }
-//        }
-//    }
-//}
-
-using System;
-using System.Drawing;
-using System.Windows.Forms;
-
-//namespace X_Ray_Images_Project
-//{
-//    public partial class Form1 : Form
-//    {
-//        private Bitmap originalRadiograph; // Store the original radiograph image
-//        private Rectangle selectedArea; // Store the selected area by the mouse
-
-//        public Form1()
-//        {
-//            InitializeComponent();
-//        }
-
-//        private void button1_Click(object sender, EventArgs e)
-//        {
-//            OpenFileDialog openFileDialog = new OpenFileDialog();
-//            openFileDialog.Filter = "Image Files (*.jpg, *.png)|*.jpg;*.png";
-
-//            if (openFileDialog.ShowDialog() == DialogResult.OK)
-//            {
-//                try
-//                {
-//                    string imageLocation = openFileDialog.FileName;
-//                    inputImage.ImageLocation = imageLocation;
-
-//                    // Load the original radiograph
-//                    originalRadiograph = new Bitmap(imageLocation);
-//                }
-//                catch (Exception ex)
-//                {
-//                    MessageBox.Show($"An error occurred: {ex.Message}");
-//                }
-//            }
-//        }
-
-//        private void inputImage_MouseDown(object sender, MouseEventArgs e)
-//        {
-//            // Start selecting the affected area
-//            selectedArea = new Rectangle(e.Location, new Size(0, 0));
-//        }
-
-//        private void inputImage_MouseMove(object sender, MouseEventArgs e)
-//        {
-//            if (e.Button == MouseButtons.Left)
-//            {
-//                // Update the selected area while moving the mouse
-//                selectedArea.Width = e.X - selectedArea.X;
-//                selectedArea.Height = e.Y - selectedArea.Y;
-
-//                inputImage.Refresh(); // Refresh the picture box to draw the rectangle
-//            }
-//        }
-
-//        private void inputImage_MouseUp(object sender, MouseEventArgs e)
-//        {
-//            // Finish selecting the affected area
-//            selectedArea.Width = e.X - selectedArea.X;
-//            selectedArea.Height = e.Y - selectedArea.Y;
-
-//            // Perform affected area identification
-//            Rectangle[] affectedAreas = IdentifyAffectedAreas(selectedArea);
-
-//            // Draw rectangles around the affected areas
-//            using (Graphics graphics = Graphics.FromImage(originalRadiograph))
-//            {
-//                Pen pen = new Pen(Color.Red, 2);
-//                foreach (Rectangle area in affectedAreas)
-//                {
-//                    graphics.DrawRectangle(pen, area);
-//                }
-//            }
-
-//            // Update the picture box with the modified radiograph
-//            inputImage.Image = originalRadiograph;
-//            inputImage.Refresh(); // Refresh the picture box to display the modified radiograph
-//        }
-
-//        private Rectangle[] IdentifyAffectedAreas(Rectangle selectedArea)
-//        {
-//            // Add your implementation here to identify the affected areas within the selectedArea
-//            // using image processing techniques or machine learning algorithms
-
-//            // For demonstration purposes, we'll assume the selectedArea itself is the affected area
-//            return new Rectangle[] { selectedArea };
-//        }
-
-//        private void inputImage_Paint(object sender, PaintEventArgs e)
-//        {
-//            // Draw the selected area rectangle on the picture box
-//            if (selectedArea.Width > 0 && selectedArea.Height > 0)
-//            {
-//                e.Graphics.DrawRectangle(Pens.Blue, selectedArea);
-//            }
-//        }
-
-//        private void btnIdentifyAffectedAreas_Click(object sender, EventArgs e)
-//        {
-//            // Handle the button click event to identify affected areas
-//            // You can add your logic here to perform the identification
-//            // For example, you can call the IdentifyAffectedAreas() method
-//            // and display the results in a message box or any other way you prefer.
-//            MessageBox.Show("Identifying affected areas...");
-//        }
-//    }
-//}
-
-using System;
-using System.Drawing;
-using System.Windows.Forms;
-
-using System;
-using System.Drawing;
-using System.Windows.Forms;
-
 using System;
 using System.Drawing;
 using System.Windows.Forms;
@@ -156,6 +9,7 @@ namespace X_Ray_Images_Project
         private Bitmap originalRadiograph;
         private Rectangle selectedArea;
         private bool isSelecting;
+        private Point startPoint;
 
         public Form1()
         {
@@ -175,7 +29,6 @@ namespace X_Ray_Images_Project
                 {
                     originalRadiograph = new Bitmap(openFileDialog.FileName);
                     inputImage.Image = (Bitmap)originalRadiograph.Clone();
-                    MessageBox.Show("Image loaded successfully.");
                 }
                 catch (Exception ex)
                 {
@@ -188,28 +41,34 @@ namespace X_Ray_Images_Project
         {
             if (e.Button == MouseButtons.Left)
             {
-                selectedArea = new Rectangle(e.Location, new Size());
+                startPoint = e.Location;
+                selectedArea = new Rectangle(startPoint, new Size());
                 isSelecting = true;
             }
         }
 
         private void inputImage_MouseMove(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Left && isSelecting)
+            if (isSelecting)
             {
-                selectedArea.Width = e.X - selectedArea.Left;
-                selectedArea.Height = e.Y - selectedArea.Top;
+                int x = Math.Min(startPoint.X, e.X);
+                int y = Math.Min(startPoint.Y, e.Y);
+                int width = Math.Abs(startPoint.X - e.X);
+                int height = Math.Abs(startPoint.Y - e.Y);
+
+                // Update the selected area
+                selectedArea = new Rectangle(x, y, width, height);
                 inputImage.Invalidate();  // Force the PictureBox to be redrawn
             }
         }
+
 
         private void inputImage_MouseUp(object sender, MouseEventArgs e)
         {
             if (isSelecting)
             {
-                selectedArea.Width = e.X - selectedArea.Left;
-                selectedArea.Height = e.Y - selectedArea.Top;
                 isSelecting = false;
+                ApplyColorMapping();  // Apply color mapping to the selected area
                 inputImage.Invalidate();  // Force refresh to clear the temporary rectangle
             }
         }
@@ -218,14 +77,45 @@ namespace X_Ray_Images_Project
         {
             if (isSelecting || (selectedArea.Width > 0 && selectedArea.Height > 0))
             {
-                e.Graphics.DrawRectangle(Pens.Blue, selectedArea);
+                e.Graphics.DrawRectangle(Pens.Yellow, selectedArea);
             }
         }
 
-        private void inputImage_Click(object sender, EventArgs e)
+        private Color MapColor(int grayscaleValue)
+        {
+            // Map grayscale value to a color gradient from black to green and white to red
+            int red = grayscaleValue < 128 ? 255 : 255 - (grayscaleValue - 128) * 2;
+            int green = grayscaleValue < 128 ? grayscaleValue * 2 : 255;
+            return Color.FromArgb(red, green, 0);
+        }
+
+        private void ApplyColorMapping()
+        {
+            if (originalRadiograph != null)
+            {
+                // Ensure the selected area is valid
+                if (selectedArea.Width > 0 && selectedArea.Height > 0)
+                {
+                    // Iterate through the selected area and apply color mapping
+                    for (int y = selectedArea.Top; y < selectedArea.Bottom; y++)
+                    {
+                        for (int x = selectedArea.Left; x < selectedArea.Right; x++)
+                        {
+                            Color originalColor = originalRadiograph.GetPixel(x, y);
+                            int grayscaleValue = (int)(originalColor.GetBrightness() * 255); // Convert to grayscale value
+                            Color newColor = MapColor(grayscaleValue);
+                            originalRadiograph.SetPixel(x, y, newColor);
+                        }
+                    }
+                    // Update the PictureBox to display the modified image
+                    inputImage.Image = (Bitmap)originalRadiograph.Clone();
+                }
+            }
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
         {
 
-        }   
+        }
     }
 }
-
