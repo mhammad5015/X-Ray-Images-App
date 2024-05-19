@@ -10,6 +10,8 @@ namespace X_Ray_Images_Project
     {
         private Bitmap originalRadiograph;
         private Bitmap resizedImage;
+        private Bitmap coloredImage;
+        private Bitmap resizedColoredImage;
         private List<Rectangle> selectedAreas = new List<Rectangle>();
         private HashSet<Point> coloredPixels = new HashSet<Point>();
         private Rectangle selectedArea;
@@ -34,7 +36,10 @@ namespace X_Ray_Images_Project
                 {
                     originalRadiograph = new Bitmap(openFileDialog.FileName);
                     resizedImage = ResizeImage(originalRadiograph, inputImage.Width, inputImage.Height);
+                    coloredImage = new Bitmap(originalRadiograph);
+                    resizedColoredImage = ResizeImage(coloredImage, coloredPictureBox.Width, coloredPictureBox.Height);
                     inputImage.Image = resizedImage;
+                    coloredPictureBox.Image = resizedColoredImage;
                     selectedAreas.Clear();
                     coloredPixels.Clear();
                 }
@@ -87,6 +92,7 @@ namespace X_Ray_Images_Project
                 selectedAreas.Add(selectedArea);
                 ApplyColorMapping();
                 inputImage.Invalidate();
+                coloredPictureBox.Invalidate();
             }
         }
 
@@ -102,17 +108,17 @@ namespace X_Ray_Images_Project
             }
         }
 
-        private Point PictureBoxToImage(Point pt)
+        private Point PictureBoxToImage(Point pt, PictureBox pictureBox)
         {
-            float xRatio = (float)originalRadiograph.Width / inputImage.ClientSize.Width;
-            float yRatio = (float)originalRadiograph.Height / inputImage.ClientSize.Height;
+            float xRatio = (float)originalRadiograph.Width / pictureBox.ClientSize.Width;
+            float yRatio = (float)originalRadiograph.Height / pictureBox.ClientSize.Height;
             return new Point((int)(pt.X * xRatio), (int)(pt.Y * yRatio));
         }
 
-        private Rectangle PictureBoxToImage(Rectangle rect)
+        private Rectangle PictureBoxToImage(Rectangle rect, PictureBox pictureBox)
         {
-            Point topLeft = PictureBoxToImage(rect.Location);
-            Point bottomRight = PictureBoxToImage(new Point(rect.Right, rect.Bottom));
+            Point topLeft = PictureBoxToImage(rect.Location, pictureBox);
+            Point bottomRight = PictureBoxToImage(new Point(rect.Right, rect.Bottom), pictureBox);
             return new Rectangle(topLeft, new Size(bottomRight.X - topLeft.X, bottomRight.Y - topLeft.Y));
         }
 
@@ -122,7 +128,7 @@ namespace X_Ray_Images_Project
             {
                 foreach (var area in selectedAreas)
                 {
-                    Rectangle actualArea = PictureBoxToImage(area);
+                    Rectangle actualArea = PictureBoxToImage(area, inputImage);
                     for (int y = actualArea.Top; y < actualArea.Bottom; y++)
                     {
                         for (int x = actualArea.Left; x < actualArea.Right; x++)
@@ -130,20 +136,20 @@ namespace X_Ray_Images_Project
                             Point point = new Point(x, y);
                             if (!coloredPixels.Contains(point))
                             {
-                                if (x >= 0 && x < originalRadiograph.Width && y >= 0 && y < originalRadiograph.Height)
+                                if (x >= 0 && x < coloredImage.Width && y >= 0 && y < coloredImage.Height)
                                 {
                                     Color originalColor = originalRadiograph.GetPixel(x, y);
                                     int grayscaleValue = (int)(originalColor.GetBrightness() * 255);
                                     Color newColor = MapColor(grayscaleValue);
-                                    originalRadiograph.SetPixel(x, y, newColor);
+                                    coloredImage.SetPixel(x, y, newColor);
                                     coloredPixels.Add(point);
                                 }
                             }
                         }
                     }
                 }
-                resizedImage = ResizeImage(originalRadiograph, inputImage.Width, inputImage.Height);
-                inputImage.Image = resizedImage;
+                resizedColoredImage = ResizeImage(coloredImage, coloredPictureBox.Width, coloredPictureBox.Height);
+                coloredPictureBox.Image = resizedColoredImage;
             }
         }
 
@@ -175,19 +181,19 @@ namespace X_Ray_Images_Project
             }
         }
 
-
         private void comboColorMap_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (selectedArea.Width > 0 && selectedArea.Height > 0)
             {
                 ApplyColorMapping();
                 inputImage.Invalidate();
+                coloredPictureBox.Invalidate();
             }
         }
 
         private void saveImage_Click(object sender, EventArgs e)
         {
-            if (originalRadiograph != null)
+            if (coloredImage != null)
             {
                 using (SaveFileDialog saveFileDialog = new SaveFileDialog())
                 {
@@ -199,11 +205,55 @@ namespace X_Ray_Images_Project
                         {
                             format = ImageFormat.Png;
                         }
-                        originalRadiograph.Save(saveFileDialog.FileName, format);
-                        MessageBox.Show("message saved successfully", "X-Ray", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        coloredImage.Save(saveFileDialog.FileName, format);
+                        MessageBox.Show("Image saved successfully", "X-Ray", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                 }
             }
         }
+
+        private void btnUndo_Click(object sender, EventArgs e)
+        {
+            if (selectedAreas.Count > 0)
+            {
+                // Remove the last selected area
+                Rectangle lastArea = selectedAreas[selectedAreas.Count - 1];
+                selectedAreas.RemoveAt(selectedAreas.Count - 1);
+
+                // Convert the area from picture box coordinates to image coordinates
+                Rectangle actualArea = PictureBoxToImage(lastArea, inputImage);
+
+                // Revert the affected area in the coloredImage to its original state
+                for (int y = actualArea.Top; y < actualArea.Bottom; y++)
+                {
+                    for (int x = actualArea.Left; x < actualArea.Right; x++)
+                    {
+                        Point point = new Point(x, y);
+                        if (coloredPixels.Contains(point))
+                        {
+                            if (x >= 0 && x < originalRadiograph.Width && y >= 0 && y < originalRadiograph.Height)
+                            {
+                                Color originalColor = originalRadiograph.GetPixel(x, y);
+                                coloredImage.SetPixel(x, y, originalColor);
+                                coloredPixels.Remove(point);
+                            }
+                        }
+                    }
+                }
+
+                // Update the resizedColoredImage and refresh the coloredPictureBox
+                resizedColoredImage = ResizeImage(coloredImage, coloredPictureBox.Width, coloredPictureBox.Height);
+                coloredPictureBox.Image = resizedColoredImage;
+
+                // Refresh the inputImage to update the displayed selection areas
+                inputImage.Invalidate();
+                coloredPictureBox.Invalidate();
+            }
+            else
+            {
+                MessageBox.Show("No more actions to undo.", "Undo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
     }
 }
