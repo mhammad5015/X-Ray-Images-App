@@ -50,7 +50,7 @@ namespace X_Ray_Images_Project
             }
         }
 
-        private Bitmap ResizeImage(Bitmap originalImage, int targetWidth, int targetHeight)
+        public Bitmap ResizeImage(Bitmap originalImage, int targetWidth, int targetHeight)
         {
             Bitmap resizedImage = new Bitmap(targetWidth, targetHeight);
             using (Graphics g = Graphics.FromImage(resizedImage))
@@ -62,7 +62,7 @@ namespace X_Ray_Images_Project
 
         private void inputImage_MouseDown(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Left)
+            if (e.Button == MouseButtons.Left && originalRadiograph != null)
             {
                 startPoint = e.Location;
                 selectedArea = new Rectangle(startPoint, new Size());
@@ -216,14 +216,11 @@ namespace X_Ray_Images_Project
         {
             if (selectedAreas.Count > 0)
             {
-                // Remove the last selected area
                 Rectangle lastArea = selectedAreas[selectedAreas.Count - 1];
                 selectedAreas.RemoveAt(selectedAreas.Count - 1);
 
-                // Convert the area from picture box coordinates to image coordinates
                 Rectangle actualArea = PictureBoxToImage(lastArea, inputImage);
 
-                // Revert the affected area in the coloredImage to its original state
                 for (int y = actualArea.Top; y < actualArea.Bottom; y++)
                 {
                     for (int x = actualArea.Left; x < actualArea.Right; x++)
@@ -241,11 +238,9 @@ namespace X_Ray_Images_Project
                     }
                 }
 
-                // Update the resizedColoredImage and refresh the coloredPictureBox
                 resizedColoredImage = ResizeImage(coloredImage, coloredPictureBox.Width, coloredPictureBox.Height);
                 coloredPictureBox.Image = resizedColoredImage;
 
-                // Refresh the inputImage to update the displayed selection areas
                 inputImage.Invalidate();
                 coloredPictureBox.Invalidate();
             }
@@ -254,6 +249,21 @@ namespace X_Ray_Images_Project
                 MessageBox.Show("No more actions to undo.", "Undo", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
+
+        // PART 2 
+
+        private void compareBtn_Click(object sender, EventArgs e)
+        {
+            compareForm comp = new compareForm();
+            comp.Show();
+        }
+
+        private void searchBtn_Click(object sender, EventArgs e)
+        {
+            searchForm srch = new searchForm();
+            srch.Show();
+        }
+
 
     }
 }

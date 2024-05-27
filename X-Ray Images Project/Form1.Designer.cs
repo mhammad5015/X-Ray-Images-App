@@ -22,6 +22,8 @@
             label1 = new Label();
             saveImage = new Button();
             btnUndo = new Button();
+            compareBtn = new Button();
+            searchBtn = new Button();
             ((System.ComponentModel.ISupportInitialize)inputImage).BeginInit();
             ((System.ComponentModel.ISupportInitialize)coloredPictureBox).BeginInit();
             SuspendLayout();
@@ -96,17 +98,39 @@
             // 
             btnUndo.Location = new Point(274, 53);
             btnUndo.Name = "btnUndo";
-            btnUndo.Size = new Size(132, 23);
+            btnUndo.Size = new Size(144, 23);
             btnUndo.TabIndex = 7;
             btnUndo.Text = "Undo";
             btnUndo.UseVisualStyleBackColor = true;
             btnUndo.Click += btnUndo_Click;
+            // 
+            // compareBtn
+            // 
+            compareBtn.Location = new Point(274, 12);
+            compareBtn.Name = "compareBtn";
+            compareBtn.Size = new Size(144, 27);
+            compareBtn.TabIndex = 8;
+            compareBtn.Text = "Compare Images";
+            compareBtn.UseVisualStyleBackColor = true;
+            compareBtn.Click += compareBtn_Click;
+            // 
+            // searchBtn
+            // 
+            searchBtn.Location = new Point(450, 49);
+            searchBtn.Name = "searchBtn";
+            searchBtn.Size = new Size(144, 27);
+            searchBtn.TabIndex = 9;
+            searchBtn.Text = "Search";
+            searchBtn.UseVisualStyleBackColor = true;
+            searchBtn.Click += searchBtn_Click;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(867, 504);
+            Controls.Add(searchBtn);
+            Controls.Add(compareBtn);
             Controls.Add(btnUndo);
             Controls.Add(saveImage);
             Controls.Add(coloredPictureBox);
@@ -130,5 +154,7 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Button saveImage;
         private Button btnUndo;
+        private Button compareBtn;
+        private Button searchBtn;
     }
 }
