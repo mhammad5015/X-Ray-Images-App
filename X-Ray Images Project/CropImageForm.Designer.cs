@@ -17,71 +17,80 @@
 
         private void InitializeComponent()
         {
-            this.btnLoadImage = new System.Windows.Forms.Button();
-            this.pictureBoxOriginal = new System.Windows.Forms.PictureBox();
-            this.pictureBoxCropped = new System.Windows.Forms.PictureBox();
-            this.btnCropImage = new System.Windows.Forms.Button();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxOriginal)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxCropped)).BeginInit();
-            this.SuspendLayout();
+            btnLoadImage = new Button();
+            pictureBoxOriginal = new PictureBox();
+            pictureBoxCropped = new PictureBox();
+            btnCropImage = new Button();
+            saveCropedBtn = new Button();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxOriginal).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxCropped).BeginInit();
+            SuspendLayout();
             // 
             // btnLoadImage
             // 
-            this.btnLoadImage.Location = new System.Drawing.Point(12, 12);
-            this.btnLoadImage.Name = "btnLoadImage";
-            this.btnLoadImage.Size = new System.Drawing.Size(75, 23);
-            this.btnLoadImage.TabIndex = 0;
-            this.btnLoadImage.Text = "Load Image";
-            this.btnLoadImage.UseVisualStyleBackColor = true;
-            this.btnLoadImage.Click += new System.EventHandler(this.btnLoadImage_Click);
+            btnLoadImage.Location = new Point(104, 12);
+            btnLoadImage.Name = "btnLoadImage";
+            btnLoadImage.Size = new Size(116, 23);
+            btnLoadImage.TabIndex = 0;
+            btnLoadImage.Text = "Load Image";
+            btnLoadImage.UseVisualStyleBackColor = true;
+            btnLoadImage.Click += btnLoadImage_Click;
             // 
             // pictureBoxOriginal
             // 
-            this.pictureBoxOriginal.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.pictureBoxOriginal.Location = new System.Drawing.Point(12, 41);
-            this.pictureBoxOriginal.Name = "pictureBoxOriginal";
-            this.pictureBoxOriginal.Size = new System.Drawing.Size(300, 300);
-            this.pictureBoxOriginal.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
-            this.pictureBoxOriginal.TabIndex = 1;
-            this.pictureBoxOriginal.TabStop = false;
-            this.pictureBoxOriginal.MouseDown += new System.Windows.Forms.MouseEventHandler(this.pictureBoxOriginal_MouseDown);
-            this.pictureBoxOriginal.MouseMove += new System.Windows.Forms.MouseEventHandler(this.pictureBoxOriginal_MouseMove);
-            this.pictureBoxOriginal.MouseUp += new System.Windows.Forms.MouseEventHandler(this.pictureBoxOriginal_MouseUp);
-            this.pictureBoxOriginal.Paint += new System.Windows.Forms.PaintEventHandler(this.pictureBoxOriginal_Paint);
+            pictureBoxOriginal.BorderStyle = BorderStyle.FixedSingle;
+            pictureBoxOriginal.Location = new Point(12, 41);
+            pictureBoxOriginal.Name = "pictureBoxOriginal";
+            pictureBoxOriginal.Size = new Size(300, 300);
+            pictureBoxOriginal.TabIndex = 1;
+            pictureBoxOriginal.TabStop = false;
+            pictureBoxOriginal.Paint += pictureBoxOriginal_Paint;
+            pictureBoxOriginal.MouseDown += pictureBoxOriginal_MouseDown;
+            pictureBoxOriginal.MouseMove += pictureBoxOriginal_MouseMove;
+            pictureBoxOriginal.MouseUp += pictureBoxOriginal_MouseUp;
             // 
             // pictureBoxCropped
             // 
-            this.pictureBoxCropped.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.pictureBoxCropped.Location = new System.Drawing.Point(318, 41);
-            this.pictureBoxCropped.Name = "pictureBoxCropped";
-            this.pictureBoxCropped.Size = new System.Drawing.Size(300, 300);
-            this.pictureBoxCropped.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
-            this.pictureBoxCropped.TabIndex = 2;
-            this.pictureBoxCropped.TabStop = false;
+            pictureBoxCropped.BorderStyle = BorderStyle.FixedSingle;
+            pictureBoxCropped.Location = new Point(318, 41);
+            pictureBoxCropped.Name = "pictureBoxCropped";
+            pictureBoxCropped.Size = new Size(300, 300);
+            pictureBoxCropped.TabIndex = 2;
+            pictureBoxCropped.TabStop = false;
             // 
             // btnCropImage
             // 
-            this.btnCropImage.Location = new System.Drawing.Point(543, 12);
-            this.btnCropImage.Name = "btnCropImage";
-            this.btnCropImage.Size = new System.Drawing.Size(75, 23);
-            this.btnCropImage.TabIndex = 3;
-            this.btnCropImage.Text = "Crop Image";
-            this.btnCropImage.UseVisualStyleBackColor = true;
-            this.btnCropImage.Click += new System.EventHandler(this.btnCropImage_Click);
+            btnCropImage.Location = new Point(407, 12);
+            btnCropImage.Name = "btnCropImage";
+            btnCropImage.Size = new Size(116, 23);
+            btnCropImage.TabIndex = 3;
+            btnCropImage.Text = "Crop Image";
+            btnCropImage.UseVisualStyleBackColor = true;
+            btnCropImage.Click += btnCropImage_Click;
+            // 
+            // saveCropedBtn
+            // 
+            saveCropedBtn.Location = new Point(254, 347);
+            saveCropedBtn.Name = "saveCropedBtn";
+            saveCropedBtn.Size = new Size(116, 23);
+            saveCropedBtn.TabIndex = 4;
+            saveCropedBtn.Text = "Save";
+            saveCropedBtn.UseVisualStyleBackColor = true;
+            saveCropedBtn.Click += saveCropedBtn_Click;
             // 
             // CropImageForm
             // 
-            this.ClientSize = new System.Drawing.Size(630, 353);
-            this.Controls.Add(this.btnCropImage);
-            this.Controls.Add(this.pictureBoxCropped);
-            this.Controls.Add(this.pictureBoxOriginal);
-            this.Controls.Add(this.btnLoadImage);
-            this.Name = "CropImageForm";
-            this.Text = "Crop Image";
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxOriginal)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxCropped)).EndInit();
-            this.ResumeLayout(false);
-
+            ClientSize = new Size(630, 380);
+            Controls.Add(saveCropedBtn);
+            Controls.Add(btnCropImage);
+            Controls.Add(pictureBoxCropped);
+            Controls.Add(pictureBoxOriginal);
+            Controls.Add(btnLoadImage);
+            Name = "CropImageForm";
+            Text = "Crop Image";
+            ((System.ComponentModel.ISupportInitialize)pictureBoxOriginal).EndInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxCropped).EndInit();
+            ResumeLayout(false);
         }
 
         #endregion
@@ -90,5 +99,6 @@
         private System.Windows.Forms.PictureBox pictureBoxOriginal;
         private System.Windows.Forms.PictureBox pictureBoxCropped;
         private System.Windows.Forms.Button btnCropImage;
+        private Button saveCropedBtn;
     }
 }

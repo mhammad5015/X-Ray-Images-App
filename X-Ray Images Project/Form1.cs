@@ -1,4 +1,3 @@
-
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -13,7 +12,12 @@ using AForge.Imaging.ComplexFilters;
 using AForge.Imaging.Filters;
 using AForge.Imaging;
 using AForge;
+using NAudio.Lame;
 using Point = System.Drawing.Point;
+using YourNamespace;
+using System.IO.Compression;
+using AForge.Math.Geometry;
+
 namespace X_Ray_Images_Project
 {
     public partial class Form1 : Form
@@ -22,7 +26,10 @@ namespace X_Ray_Images_Project
         private Bitmap resizedImage;
         private Bitmap coloredImage;
         private Bitmap resizedColoredImage;
-        private List<System.Drawing.Rectangle> selectedAreas = new List<System.Drawing.Rectangle>();
+        private List<System.Drawing.Rectangle> selectedRectangles = new List<System.Drawing.Rectangle>();
+        private List<System.Drawing.Rectangle> selectedTriangles = new List<System.Drawing.Rectangle>();
+        private List<System.Drawing.Rectangle> selectedCircles = new List<System.Drawing.Rectangle>();
+        private List<Tuple<System.Drawing.Rectangle, ShapeType>> selectedAreas = new List<Tuple<System.Drawing.Rectangle, ShapeType>>();
         private HashSet<Point> coloredPixels = new HashSet<Point>();
         private System.Drawing.Rectangle selectedArea;
         private bool isSelecting;
@@ -33,11 +40,11 @@ namespace X_Ray_Images_Project
         private WaveFileWriter writer;
         private string outputFilename;
 
+        private Document reportDocument;
+        private MemoryStream reportStream;
         public Form1()
         {
             InitializeComponent();
-            stopButton.Enabled = false;
-            playButton.Enabled = false;
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -58,6 +65,9 @@ namespace X_Ray_Images_Project
                     inputImage.Image = resizedImage;
                     coloredPictureBox.Image = resizedColoredImage;
                     selectedAreas.Clear();
+                    selectedCircles.Clear();
+                    selectedTriangles.Clear();
+                    selectedRectangles.Clear();
                     coloredPixels.Clear();
                 }
                 catch (Exception ex)
@@ -91,39 +101,98 @@ namespace X_Ray_Images_Project
         {
             if (isSelecting)
             {
-                int x = Math.Min(startPoint.X, e.X);
-                int y = Math.Min(startPoint.Y, e.Y);
-                int width = Math.Abs(startPoint.X - e.X);
-                int height = Math.Abs(startPoint.Y - e.Y);
-
-                selectedArea = new System.Drawing.Rectangle(x, y, width, height);
+                if (currentShape == ShapeType.Circle)
+                {
+                    int diameter = Math.Min(Math.Abs(startPoint.X - e.X), Math.Abs(startPoint.Y - e.Y));
+                    int x = startPoint.X < e.X ? startPoint.X : startPoint.X - diameter;
+                    int y = startPoint.Y < e.Y ? startPoint.Y : startPoint.Y - diameter;
+                    selectedArea = new System.Drawing.Rectangle(x, y, diameter, diameter);
+                }
+                else
+                {
+                    int x = Math.Min(startPoint.X, e.X);
+                    int y = Math.Min(startPoint.Y, e.Y);
+                    int width = Math.Abs(startPoint.X - e.X);
+                    int height = Math.Abs(startPoint.Y - e.Y);
+                    selectedArea = new System.Drawing.Rectangle(x, y, width, height);
+                }
                 inputImage.Invalidate();
             }
         }
+
 
         private void inputImage_MouseUp(object sender, MouseEventArgs e)
         {
             if (isSelecting)
             {
                 isSelecting = false;
-                selectedAreas.Add(selectedArea);
+
+                if (currentShape == ShapeType.Circle)
+                {
+                    int diameter = Math.Min(Math.Abs(startPoint.X - e.X), Math.Abs(startPoint.Y - e.Y));
+                    int x = startPoint.X < e.X ? startPoint.X : startPoint.X - diameter;
+                    int y = startPoint.Y < e.Y ? startPoint.Y : startPoint.Y - diameter;
+                    selectedArea = new System.Drawing.Rectangle(x, y, diameter, diameter);
+                }
+                else
+                {
+                    int x = Math.Min(startPoint.X, e.X);
+                    int y = Math.Min(startPoint.Y, e.Y);
+                    int width = Math.Abs(startPoint.X - e.X);
+                    int height = Math.Abs(startPoint.Y - e.Y);
+                    selectedArea = new System.Drawing.Rectangle(x, y, width, height);
+                }
+
+                switch (currentShape)
+                {
+                    case ShapeType.Rectangle:
+                        selectedRectangles.Add(selectedArea);
+                        selectedAreas.Add(Tuple.Create(selectedArea, ShapeType.Rectangle));
+                        break;
+                    case ShapeType.Triangle:
+                        selectedTriangles.Add(selectedArea);
+                        selectedAreas.Add(Tuple.Create(selectedArea, ShapeType.Triangle));
+                        break;
+                    case ShapeType.Circle:
+                        selectedCircles.Add(selectedArea);
+                        selectedAreas.Add(Tuple.Create(selectedArea, ShapeType.Circle));
+                        break;
+                }
+
                 ApplyColorMapping();
                 inputImage.Invalidate();
                 coloredPictureBox.Invalidate();
             }
         }
 
+
+
+
+
         private void inputImage_Paint(object sender, PaintEventArgs e)
         {
-            foreach (var area in selectedAreas)
+            foreach (var area in selectedRectangles)
             {
-                e.Graphics.DrawRectangle(Pens.Yellow, area);
+                DrawShape(e.Graphics, area, ShapeType.Rectangle, Pens.Yellow);
             }
+
+            foreach (var area in selectedTriangles)
+            {
+                DrawShape(e.Graphics, area, ShapeType.Triangle, Pens.Yellow);
+            }
+
+            foreach (var area in selectedCircles)
+            {
+                DrawShape(e.Graphics, area, ShapeType.Circle, Pens.Yellow);
+            }
+
             if (isSelecting)
             {
-                e.Graphics.DrawRectangle(Pens.Yellow, selectedArea);
+                DrawShape(e.Graphics, selectedArea, currentShape, Pens.Yellow);
             }
         }
+
+
 
         private Point PictureBoxToImage(Point pt, PictureBox pictureBox)
         {
@@ -143,32 +212,110 @@ namespace X_Ray_Images_Project
         {
             if (originalRadiograph != null)
             {
-                foreach (var area in selectedAreas)
+                foreach (var area in selectedRectangles)
                 {
                     System.Drawing.Rectangle actualArea = PictureBoxToImage(area, inputImage);
-                    for (int y = actualArea.Top; y < actualArea.Bottom; y++)
-                    {
-                        for (int x = actualArea.Left; x < actualArea.Right; x++)
-                        {
-                            Point point = new Point(x, y);
-                            if (!coloredPixels.Contains(point))
-                            {
-                                if (x >= 0 && x < coloredImage.Width && y >= 0 && y < coloredImage.Height)
-                                {
-                                    Color originalColor = originalRadiograph.GetPixel(x, y);
-                                    int grayscaleValue = (int)(originalColor.GetBrightness() * 255);
-                                    Color newColor = MapColor(grayscaleValue);
-                                    coloredImage.SetPixel(x, y, newColor);
-                                    coloredPixels.Add(point);
-                                }
-                            }
-                        }
-                    }
+                    ApplyColorMappingToRectangle(actualArea);
                 }
+
+                foreach (var area in selectedTriangles)
+                {
+                    System.Drawing.Rectangle actualArea = PictureBoxToImage(area, inputImage);
+                    ApplyColorMappingToTriangle(actualArea);
+                }
+
+                foreach (var area in selectedCircles)
+                {
+                    System.Drawing.Rectangle actualArea = PictureBoxToImage(area, inputImage);
+                    ApplyColorMappingToCircle(actualArea);
+                }
+
                 resizedColoredImage = ResizeImage(coloredImage, coloredPictureBox.Width, coloredPictureBox.Height);
                 coloredPictureBox.Image = resizedColoredImage;
             }
         }
+
+
+        private void ApplyColorMappingToRectangle(System.Drawing.Rectangle rect)
+        {
+            for (int y = rect.Top; y < rect.Bottom; y++)
+            {
+                for (int x = rect.Left; x < rect.Right; x++)
+                {
+                    ApplyColorToPoint(x, y);
+                }
+            }
+        }
+
+        private void ApplyColorMappingToTriangle(System.Drawing.Rectangle rect)
+        {
+            Point p1 = new Point(rect.Left + rect.Width / 2, rect.Top);
+            Point p2 = new Point(rect.Left, rect.Bottom);
+            Point p3 = new Point(rect.Right, rect.Bottom);
+            for (int y = rect.Top; y < rect.Bottom; y++)
+            {
+                for (int x = rect.Left; x < rect.Right; x++)
+                {
+                    if (IsPointInTriangle(new Point(x, y), p1, p2, p3))
+                    {
+                        ApplyColorToPoint(x, y);
+                    }
+                }
+            }
+        }
+
+        private void ApplyColorMappingToCircle(System.Drawing.Rectangle rect)
+        {
+            Point center = new Point(rect.Left + rect.Width / 2, rect.Top + rect.Height / 2);
+            int radius = Math.Min(rect.Width, rect.Height) / 2;
+            for (int y = rect.Top; y < rect.Bottom; y++)
+            {
+                for (int x = rect.Left; x < rect.Right; x++)
+                {
+                    if (IsPointInCircle(new Point(x, y), center, radius))
+                    {
+                        ApplyColorToPoint(x, y);
+                    }
+                }
+            }
+        }
+
+        private bool IsPointInTriangle(Point pt, Point v1, Point v2, Point v3)
+        {
+            // Implement point-in-triangle test using barycentric coordinates
+            float dX = pt.X - v3.X;
+            float dY = pt.Y - v3.Y;
+            float dX21 = v3.X - v2.X;
+            float dY12 = v2.Y - v3.Y;
+            float D = dY12 * (v1.X - v3.X) + dX21 * (v1.Y - v3.Y);
+            float s = dY12 * dX + dX21 * dY;
+            float t = (v3.Y - v1.Y) * dX + (v1.X - v3.X) * dY;
+            if (D < 0)
+                return s <= 0 && t <= 0 && s + t >= D;
+            return s >= 0 && t >= 0 && s + t <= D;
+        }
+
+        private bool IsPointInCircle(Point pt, Point center, int radius)
+        {
+            return (pt.X - center.X) * (pt.X - center.X) + (pt.Y - center.Y) * (pt.Y - center.Y) <= radius * radius;
+        }
+
+        private void ApplyColorToPoint(int x, int y)
+        {
+            if (x >= 0 && x < coloredImage.Width && y >= 0 && y < coloredImage.Height)
+            {
+                Point point = new Point(x, y);
+                if (!coloredPixels.Contains(point))
+                {
+                    Color originalColor = originalRadiograph.GetPixel(x, y);
+                    int grayscaleValue = (int)(originalColor.GetBrightness() * 255);
+                    Color newColor = MapColor(grayscaleValue);
+                    coloredImage.SetPixel(x, y, newColor);
+                    coloredPixels.Add(point);
+                }
+            }
+        }
+
 
         private Color MapColor(int grayscaleValue)
         {
@@ -207,6 +354,109 @@ namespace X_Ray_Images_Project
                 coloredPictureBox.Invalidate();
             }
         }
+
+        public enum ShapeType
+        {
+            Rectangle,
+            Triangle,
+            Circle
+        }
+        private ShapeType currentShape = ShapeType.Rectangle;
+
+        private void comboSelectShape_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            switch (comboSelectShape.SelectedItem.ToString())
+            {
+                case "Rectangle":
+                    currentShape = ShapeType.Rectangle;
+                    break;
+                case "Triangle":
+                    currentShape = ShapeType.Triangle;
+                    break;
+                case "Circle":
+                    currentShape = ShapeType.Circle;
+                    break;
+            }
+        }
+
+        private void DrawShape(Graphics g, System.Drawing.Rectangle rect, ShapeType shape, Pen pen)
+        {
+            switch (shape)
+            {
+                case ShapeType.Rectangle:
+                    g.DrawRectangle(pen, rect);
+                    break;
+                case ShapeType.Triangle:
+                    Point p1 = new Point(rect.Left + rect.Width / 2, rect.Top);
+                    Point p2 = new Point(rect.Left, rect.Bottom);
+                    Point p3 = new Point(rect.Right, rect.Bottom);
+                    g.DrawPolygon(pen, new Point[] { p1, p2, p3 });
+                    break;
+                case ShapeType.Circle:
+                    g.DrawEllipse(pen, rect);
+                    break;
+            }
+        }
+
+
+
+        private void btnUndo_Click(object sender, EventArgs e)
+        {
+            if (selectedAreas.Count > 0)
+            {
+                // Get the last added area and shape type
+                var lastAreaInfo = selectedAreas[selectedAreas.Count - 1];
+                selectedAreas.RemoveAt(selectedAreas.Count - 1);
+
+                System.Drawing.Rectangle lastArea = lastAreaInfo.Item1;
+                ShapeType lastShape = lastAreaInfo.Item2;
+
+                // Remove the last area from the shape-specific list
+                switch (lastShape)
+                {
+                    case ShapeType.Rectangle:
+                        selectedRectangles.Remove(lastArea);
+                        break;
+                    case ShapeType.Triangle:
+                        selectedTriangles.Remove(lastArea);
+                        break;
+                    case ShapeType.Circle:
+                        selectedCircles.Remove(lastArea);
+                        break;
+                }
+
+                // Clear the colors in the last area
+                System.Drawing.Rectangle actualArea = PictureBoxToImage(lastArea, inputImage);
+
+                for (int y = actualArea.Top; y < actualArea.Bottom; y++)
+                {
+                    for (int x = actualArea.Left; x < actualArea.Right; x++)
+                    {
+                        Point point = new Point(x, y);
+                        if (coloredPixels.Contains(point))
+                        {
+                            if (x >= 0 && x < originalRadiograph.Width && y >= 0 && y < originalRadiograph.Height)
+                            {
+                                Color originalColor = originalRadiograph.GetPixel(x, y);
+                                coloredImage.SetPixel(x, y, originalColor);
+                                coloredPixels.Remove(point);
+                            }
+                        }
+                    }
+                }
+
+                resizedColoredImage = ResizeImage(coloredImage, coloredPictureBox.Width, coloredPictureBox.Height);
+                coloredPictureBox.Image = resizedColoredImage;
+
+                inputImage.Invalidate();
+                coloredPictureBox.Invalidate();
+            }
+            else
+            {
+                MessageBox.Show("No more actions to undo.", "Undo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
 
         private void saveImage_Click(object sender, EventArgs e)
         {
@@ -253,43 +503,85 @@ namespace X_Ray_Images_Project
             }
         }
 
-        private void btnUndo_Click(object sender, EventArgs e)
+        private void compressSaveButton_Click(object sender, EventArgs e)
         {
-            if (selectedAreas.Count > 0)
+            if (coloredImage != null)
             {
-                System.Drawing.Rectangle lastArea = selectedAreas[selectedAreas.Count - 1];
-                selectedAreas.RemoveAt(selectedAreas.Count - 1);
-
-                System.Drawing.Rectangle actualArea = PictureBoxToImage(lastArea, inputImage);
-
-                for (int y = actualArea.Top; y < actualArea.Bottom; y++)
+                SaveFileDialog saveFileDialog = new SaveFileDialog
                 {
-                    for (int x = actualArea.Left; x < actualArea.Right; x++)
+                    Filter = "ZIP Files|*.zip",
+                    Title = "Save Compressed Image As"
+                };
+
+                if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    try
                     {
-                        Point point = new Point(x, y);
-                        if (coloredPixels.Contains(point))
-                        {
-                            if (x >= 0 && x < originalRadiograph.Width && y >= 0 && y < originalRadiograph.Height)
-                            {
-                                Color originalColor = originalRadiograph.GetPixel(x, y);
-                                coloredImage.SetPixel(x, y, originalColor);
-                                coloredPixels.Remove(point);
-                            }
-                        }
+                        string tempFilePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".rle");
+                        CompressAndSaveImageAsRLE(coloredImage, tempFilePath);
+                        CompressImageToZip(tempFilePath, saveFileDialog.FileName);
+                        File.Delete(tempFilePath);
+                        MessageBox.Show("Image saved and compressed successfully.", "Save and Compress", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"An error occurred while saving the image: {ex.Message}");
                     }
                 }
-
-                resizedColoredImage = ResizeImage(coloredImage, coloredPictureBox.Width, coloredPictureBox.Height);
-                coloredPictureBox.Image = resizedColoredImage;
-
-                inputImage.Invalidate();
-                coloredPictureBox.Invalidate();
             }
             else
             {
-                MessageBox.Show("No more actions to undo.", "Undo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("No colored image to save. Please load and process an image first.", "Save and Compress", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
+
+        private void CompressAndSaveImageAsRLE(Bitmap image, string filePath)
+        {
+            // Convert the image to RLE compressed format
+            byte[] rleData = CompressImageToRLE(image);
+
+            // Save the RLE data to file
+            File.WriteAllBytes(filePath, rleData);
+        }
+
+        private byte[] CompressImageToRLE(Bitmap image)
+        {
+            List<byte> rleData = new List<byte>();
+            for (int y = 0; y < image.Height; y++)
+            {
+                for (int x = 0; x < image.Width; x++)
+                {
+                    Color pixelColor = image.GetPixel(x, y);
+                    byte[] colorBytes = { pixelColor.R, pixelColor.G, pixelColor.B };
+                    int runLength = 1;
+
+                    // Check for run-length
+                    while (x + 1 < image.Width && image.GetPixel(x + 1, y) == pixelColor)
+                    {
+                        runLength++;
+                        x++;
+                    }
+
+                    // Store run-length and color data
+                    rleData.Add((byte)runLength);
+                    rleData.AddRange(colorBytes);
+                }
+            }
+
+            return rleData.ToArray();
+        }
+
+        private void CompressImageToZip(string imageFilePath, string zipFilePath)
+        {
+            using (FileStream zipToOpen = new FileStream(zipFilePath, FileMode.Create))
+            {
+                using (ZipArchive archive = new ZipArchive(zipToOpen, ZipArchiveMode.Create))
+                {
+                    archive.CreateEntryFromFile(imageFilePath, Path.GetFileName(imageFilePath));
+                }
+            }
+        }
+ 
 
         private void compareBtn_Click(object sender, EventArgs e)
         {
@@ -344,107 +636,22 @@ namespace X_Ray_Images_Project
             }
         }
 
-        private void recordButton_Click(object sender, EventArgs e)
+        private void openRecordFormButton_Click(object sender, EventArgs e)
         {
-            SaveFileDialog saveFileDialog = new SaveFileDialog
-            {
-                Filter = "WAV Files|*.wav",
-                Title = "Save Audio As"
-            };
-
-            if (saveFileDialog.ShowDialog() == DialogResult.OK)
-            {
-                outputFilename = saveFileDialog.FileName;
-                waveIn = new WaveInEvent();
-                waveIn.WaveFormat = new WaveFormat(44100, 1);
-                waveIn.DataAvailable += OnDataAvailable;
-                waveIn.RecordingStopped += OnRecordingStopped;
-                writer = new WaveFileWriter(outputFilename, waveIn.WaveFormat);
-                waveIn.StartRecording();
-
-                stopButton.Enabled = true;
-                playButton.Enabled = true;
-            }
+            RecordForm recordForm = new RecordForm();
+            recordForm.Show();
         }
 
-        private void OnDataAvailable(object sender, WaveInEventArgs e)
-        {
-            writer.Write(e.Buffer, 0, e.BytesRecorded);
-            writer.Flush();
-        }
 
-        private void OnRecordingStopped(object sender, StoppedEventArgs e)
-        {
-            writer?.Dispose();
-            writer = null;
-            waveIn?.Dispose();
-            waveIn = null;
-        }
 
-        private void stopButton_Click(object sender, EventArgs e)
-        {
-            waveIn?.StopRecording();
-        }
-
-        private void playButton_Click(object sender, EventArgs e)
-        {
-            if (!string.IsNullOrEmpty(outputFilename) && File.Exists(outputFilename))
-            {
-                using (var audioFile = new AudioFileReader(outputFilename))
-                using (var outputDevice = new WaveOutEvent())
-                {
-                    outputDevice.Init(audioFile);
-                    outputDevice.Play();
-                    while (outputDevice.PlaybackState == PlaybackState.Playing)
-                    {
-                        System.Threading.Thread.Sleep(1000);
-                    }
-                }
-            }
-            else
-            {
-                MessageBox.Show("No audio to play. Please record audio first.", "Play Audio", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-        }
-
-        private void saveAudioButton_Click(object sender, EventArgs e)
-        {
-            if (!string.IsNullOrEmpty(outputFilename) && File.Exists(outputFilename))
-            {
-                using (SaveFileDialog saveFileDialog = new SaveFileDialog())
-                {
-                    saveFileDialog.Filter = "WAV Files|*.wav";
-                    if (saveFileDialog.ShowDialog() == DialogResult.OK)
-                    {
-                        File.Copy(outputFilename, saveFileDialog.FileName, true);
-                        MessageBox.Show("Audio saved successfully.", "Save Audio", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                }
-            }
-            else
-            {
-                MessageBox.Show("No audio to save. Please record audio first.", "Save Audio", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-        }
-
+        private Document doc;
+        private MemoryStream pdfStream;
         private void createReportButton_Click(object sender, EventArgs e)
         {
-            SaveFileDialog saveFileDialog = new SaveFileDialog
-            {
-                Filter = "PDF Files|*.pdf",
-                Title = "Save Medical Report"
-            };
-
-            if (saveFileDialog.ShowDialog() == DialogResult.OK)
-            {
-                CreateMedicalReport(saveFileDialog.FileName);
-            }
-        }
-
-        private void CreateMedicalReport(string filename)
-        {
-            Document doc = new Document(PageSize.A4);
-            PdfWriter.GetInstance(doc, new FileStream(filename, FileMode.Create));
+            // Initialize the document and memory stream
+            doc = new Document(PageSize.A4);
+            pdfStream = new MemoryStream();
+            PdfWriter.GetInstance(doc, pdfStream);
             doc.Open();
 
             // Add title
@@ -463,6 +670,30 @@ namespace X_Ray_Images_Project
             };
             doc.Add(date);
 
+            // Add age
+            if (!string.IsNullOrEmpty(ageTextBox.Text))
+            {
+                iTextSharp.text.Font ageFont = FontFactory.GetFont(FontFactory.HELVETICA, 12);
+                Paragraph age = new Paragraph("Age: " + ageTextBox.Text, ageFont);
+                age.Alignment = Element.ALIGN_LEFT;
+                doc.Add(age);
+                doc.Add(new Paragraph("\n"));
+            }
+
+
+
+            // Add gender
+            if (genderComboBox.SelectedItem != null)
+            {
+                iTextSharp.text.Font genderFont = FontFactory.GetFont(FontFactory.HELVETICA, 12);
+                Paragraph gender = new Paragraph("Gender: " + genderComboBox.SelectedItem.ToString(), genderFont)
+                {
+                    Alignment = Element.ALIGN_LEFT
+                };
+                doc.Add(gender);
+                doc.Add(new Paragraph("\n"));
+            }
+
             // Add space
             doc.Add(new Paragraph("\n"));
 
@@ -472,7 +703,7 @@ namespace X_Ray_Images_Project
                 iTextSharp.text.Font commentFont = FontFactory.GetFont(FontFactory.HELVETICA, 12);
                 Paragraph comment = new Paragraph("Comment: " + commentTextBox.Text, commentFont);
                 comment.Alignment = Element.ALIGN_LEFT;
-                doc.Add(new Paragraph("Comment: " + commentTextBox.Text, commentFont));
+                doc.Add(comment);
                 doc.Add(new Paragraph("\n"));
             }
 
@@ -501,10 +732,86 @@ namespace X_Ray_Images_Project
                 doc.Add(audioLink);
             }
 
+
+
+            // Finalize the document
             doc.Close();
 
-            MessageBox.Show("Medical report created successfully.", "Report", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("Medical report created successfully. You can now save or compress the report.", "Report", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
+
+        private void saveReportButton_Click(object sender, EventArgs e)
+        {
+            if (pdfStream != null)
+            {
+                SaveFileDialog saveFileDialog = new SaveFileDialog
+                {
+                    Filter = "PDF Files|*.pdf",
+                    Title = "Save Medical Report"
+                };
+
+                if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    try
+                    {
+                        File.WriteAllBytes(saveFileDialog.FileName, pdfStream.ToArray());
+                        MessageBox.Show("Report saved successfully.", "Save Report", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"An error occurred while saving the report: {ex.Message}");
+                    }
+                }
+            }
+            else
+            {
+                MessageBox.Show("No report to save. Please create a report first.", "Save Report", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private void compressAndSaveButton_Click(object sender, EventArgs e)
+        {
+            if (pdfStream != null)
+            {
+                SaveFileDialog saveFileDialog = new SaveFileDialog
+                {
+                    Filter = "ZIP Files|*.zip",
+                    Title = "Save Compressed Medical Report"
+                };
+
+                if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    try
+                    {
+                        string tempFilePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".pdf");
+                        File.WriteAllBytes(tempFilePath, pdfStream.ToArray());
+                        CompressToZip(tempFilePath, saveFileDialog.FileName);
+                        File.Delete(tempFilePath);
+                        MessageBox.Show("Report compressed and saved successfully.", "Compress and Save Report", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"An error occurred while compressing and saving the report: {ex.Message}");
+                    }
+                }
+            }
+            else
+            {
+                MessageBox.Show("No report to compress and save. Please create a report first.", "Compress and Save Report", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private void CompressToZip(string filePath, string zipFilePath)
+        {
+            using (FileStream zipToOpen = new FileStream(zipFilePath, FileMode.Create))
+            {
+                using (ZipArchive archive = new ZipArchive(zipToOpen, ZipArchiveMode.Create))
+                {
+                    archive.CreateEntryFromFile(filePath, Path.GetFileName(filePath));
+                }
+            }
+        }
+
 
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -525,7 +832,7 @@ namespace X_Ray_Images_Project
                 MessageBox.Show("Please load an image first.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-        
+
         public static Bitmap ApplyFourierTransform(Bitmap originalImage)
         {
             // Create grayscale filter (BT709)
@@ -566,6 +873,22 @@ namespace X_Ray_Images_Project
             sharpenFilter.ApplyInPlace(filteredImage);
 
             return filteredImage;
+        }
+
+        private void buttonOpenShareForm_Click(object sender, EventArgs e)
+        {
+            // Þã ÈÊÍÏíÏ ÇáãÓÇÑ ÇáÝÚáí ááãáÝ ÇáãÖÛæØ
+            string zipFilePath = "C:/Users/Mhammad/Desktop/saved images/my-tv-master.zip";
+
+            // ÊÍÞÞ ãä æÌæÏ ÇáãáÝ
+            if (!File.Exists(zipFilePath))
+            {
+                MessageBox.Show($"File not found: {zipFilePath}");
+                return;
+            }
+
+            ShareForm shareForm = new ShareForm(zipFilePath);
+            shareForm.Show();
         }
     }
 }
