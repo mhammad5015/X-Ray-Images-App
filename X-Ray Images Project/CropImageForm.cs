@@ -64,7 +64,7 @@ namespace X_Ray_Images_Project
             int height = Math.Abs(startPoint.Y - e.Y);
 
             cropRect = new Rectangle(x, y, width, height);
-            pictureBoxOriginal.Invalidate(); // Force the PictureBox to repaint to show the updated rectangle
+            pictureBoxOriginal.Invalidate();
         }
 
         private void pictureBoxOriginal_MouseUp(object sender, MouseEventArgs e)
@@ -99,6 +99,11 @@ namespace X_Ray_Images_Project
             }
         }
 
+        private Rectangle GetActualRectangle(Rectangle cropRect, PictureBox pictureBox, Bitmap originalImage)
+        {
+            Rectangle actualArea = PictureBoxToImage(cropRect, pictureBoxOriginal);
+            return actualArea;
+        }
 
         private Point PictureBoxToImage(Point pt, PictureBox pictureBox)
         {
@@ -112,13 +117,6 @@ namespace X_Ray_Images_Project
             Point topLeft = PictureBoxToImage(rect.Location, pictureBox);
             Point bottomRight = PictureBoxToImage(new Point(rect.Right, rect.Bottom), pictureBox);
             return new System.Drawing.Rectangle(topLeft, new Size(bottomRight.X - topLeft.X, bottomRight.Y - topLeft.Y));
-        }
-
-
-        private Rectangle GetActualRectangle(Rectangle cropRect, PictureBox pictureBox, Bitmap originalImage)
-        {
-            Rectangle actualArea = PictureBoxToImage(cropRect, pictureBoxOriginal);
-            return actualArea;
         }
 
         private Bitmap CropImage(Bitmap image, Rectangle cropRect)

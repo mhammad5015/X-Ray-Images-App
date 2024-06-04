@@ -72,54 +72,53 @@ namespace X_Ray_Images_Project
 
         private void compareBtn_Click(object sender, EventArgs e)
         {
-            if (firstImage != null && secondImage != null)
+            if (firstImage == null || secondImage == null)
             {
-                string result = CompareImages(ResizedImage1, ResizedImage2);
-                MessageBox.Show(result, "Comparison Result", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Please load both images before comparing.");
+                return;
+            }
+
+            double avgIntensity1 = CalculateAverageIntensity(firstImage);
+            double avgIntensity2 = CalculateAverageIntensity(secondImage);
+
+            double threshold = 0.01;
+
+            string result;
+            double difference = Math.Abs(avgIntensity1 - avgIntensity2);
+
+            if (difference < threshold)
+            {
+                result = "There is no significant difference between the images.";
+            }
+            else if (avgIntensity1 > avgIntensity2)
+            {
+                result = "There is progress in treatment.";
             }
             else
             {
-                MessageBox.Show("Please load both images before comparing.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                result = "There is a progression of the disease.";
             }
+
+            MessageBox.Show(result);
         }
 
-        private string CompareImages(Bitmap image1, Bitmap image2)
+        private double CalculateAverageIntensity(Bitmap image)
         {
-            if (image1.Width != image2.Width || image1.Height != image2.Height)
-            {
-                return "Images must be of the same dimensions for comparison.";
-            }
+            double totalIntensity = 0;
+            int width = image.Width;
+            int height = image.Height;
 
-            long totalDifference = 0;
-            for (int y = 0; y < image1.Height; y++)
+            for (int x = 0; x < width; x++)
             {
-                for (int x = 0; x < image1.Width; x++)
+                for (int y = 0; y < height; y++)
                 {
-                    Color color1 = image1.GetPixel(x, y);
-                    Color color2 = image2.GetPixel(x, y);
-
-                    int diffR = Math.Abs(color1.R - color2.R);
-                    int diffG = Math.Abs(color1.G - color2.G);
-                    int diffB = Math.Abs(color1.B - color2.B);
-
-                    totalDifference += diffR + diffG + diffB;
+                    Color pixelColor = image.GetPixel(x, y);
+                    double intensity = (pixelColor.R + pixelColor.G + pixelColor.B) / 3.0;
+                    totalIntensity += intensity;
                 }
             }
 
-            double avgDifference = totalDifference / (double)(image1.Width * image1.Height * 3);
-
-            if (avgDifference < 10)
-            {
-                return "No significant change detected.";
-            }
-            else if (avgDifference < 50)
-            {
-                return "Mild changes detected, indicating possible progress or deterioration.";
-            }
-            else
-            {
-                return "Significant changes detected, indicating clear progress or deterioration.";
-            }
+            return totalIntensity / (width * height);
         }
     }
 }

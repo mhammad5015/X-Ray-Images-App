@@ -1,9 +1,11 @@
-﻿namespace YourNamespace
+﻿
+namespace YourNamespace
 {
     partial class ShareForm
     {
         private System.ComponentModel.IContainer components = null;
-        private System.Windows.Forms.Button buttonShareOnTelegramBot;
+        private System.Windows.Forms.Button buttonShareImageOnTelegramBot;
+        private System.Windows.Forms.Button buttonShareAudioOnTelegramBot;
 
         protected override void Dispose(bool disposing)
         {
@@ -16,29 +18,42 @@
 
         private void InitializeComponent()
         {
-            this.buttonShareOnTelegramBot = new System.Windows.Forms.Button();
-            this.SuspendLayout();
+            buttonShareImageOnTelegramBot = new Button();
+            buttonShareAudioOnTelegramBot = new Button();
+            SuspendLayout();
             // 
-            // buttonShareOnTelegramBot
+            // buttonShareImageOnTelegramBot
             // 
-            this.buttonShareOnTelegramBot.Location = new System.Drawing.Point(12, 12);
-            this.buttonShareOnTelegramBot.Name = "buttonShareOnTelegramBot";
-            this.buttonShareOnTelegramBot.Size = new System.Drawing.Size(200, 23);
-            this.buttonShareOnTelegramBot.TabIndex = 0;
-            this.buttonShareOnTelegramBot.Text = "Share on Telegram Bot";
-            this.buttonShareOnTelegramBot.UseVisualStyleBackColor = true;
-            this.buttonShareOnTelegramBot.Click += new System.EventHandler(this.buttonShareOnTelegramBot_Click);
+            buttonShareImageOnTelegramBot.Location = new Point(14, 14);
+            buttonShareImageOnTelegramBot.Margin = new Padding(4, 3, 4, 3);
+            buttonShareImageOnTelegramBot.Name = "buttonShareImageOnTelegramBot";
+            buttonShareImageOnTelegramBot.Size = new Size(233, 27);
+            buttonShareImageOnTelegramBot.TabIndex = 0;
+            buttonShareImageOnTelegramBot.Text = "Share Image on Telegram Bot";
+            buttonShareImageOnTelegramBot.UseVisualStyleBackColor = true;
+            buttonShareImageOnTelegramBot.Click += buttonShareImageOnTelegramBot_Click;
+            // 
+            // buttonShareAudioOnTelegramBot
+            // 
+            buttonShareAudioOnTelegramBot.Location = new Point(14, 57);
+            buttonShareAudioOnTelegramBot.Name = "buttonShareAudioOnTelegramBot";
+            buttonShareAudioOnTelegramBot.Size = new Size(233, 27);
+            buttonShareAudioOnTelegramBot.TabIndex = 1;
+            buttonShareAudioOnTelegramBot.Text = "Share Audio on Telegram Bot";
+            buttonShareAudioOnTelegramBot.UseVisualStyleBackColor = true;
+            buttonShareAudioOnTelegramBot.Click += buttonShareAudioOnTelegramBot_Click;
             // 
             // ShareForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(224, 46);
-            this.Controls.Add(this.buttonShareOnTelegramBot);
-            this.Name = "ShareForm";
-            this.Text = "Share Files";
-            this.ResumeLayout(false);
-
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
+            ClientSize = new Size(262, 99);
+            Controls.Add(buttonShareImageOnTelegramBot);
+            Controls.Add(buttonShareAudioOnTelegramBot);
+            Margin = new Padding(4, 3, 4, 3);
+            Name = "ShareForm";
+            Text = "Share Files";
+            ResumeLayout(false);
         }
     }
 }

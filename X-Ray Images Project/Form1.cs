@@ -42,6 +42,9 @@ namespace X_Ray_Images_Project
 
         private Document reportDocument;
         private MemoryStream reportStream;
+
+        private string savedImagePath;
+        private string savedAudioPath;
         public Form1()
         {
             InitializeComponent();
@@ -165,10 +168,6 @@ namespace X_Ray_Images_Project
             }
         }
 
-
-
-
-
         private void inputImage_Paint(object sender, PaintEventArgs e)
         {
             foreach (var area in selectedRectangles)
@@ -192,20 +191,46 @@ namespace X_Ray_Images_Project
             }
         }
 
-
-
-        private Point PictureBoxToImage(Point pt, PictureBox pictureBox)
+        public enum ShapeType
         {
-            float xRatio = (float)originalRadiograph.Width / pictureBox.ClientSize.Width;
-            float yRatio = (float)originalRadiograph.Height / pictureBox.ClientSize.Height;
-            return new Point((int)(pt.X * xRatio), (int)(pt.Y * yRatio));
+            Rectangle,
+            Triangle,
+            Circle
+        }
+        private ShapeType currentShape = ShapeType.Rectangle;
+        private void comboSelectShape_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            switch (comboSelectShape.SelectedItem.ToString())
+            {
+                case "Rectangle":
+                    currentShape = ShapeType.Rectangle;
+                    break;
+                case "Triangle":
+                    currentShape = ShapeType.Triangle;
+                    break;
+                case "Circle":
+                    currentShape = ShapeType.Circle;
+                    break;
+            }
         }
 
-        private System.Drawing.Rectangle PictureBoxToImage(System.Drawing.Rectangle rect, PictureBox pictureBox)
+        private void DrawShape(Graphics g, System.Drawing.Rectangle rect, ShapeType shape, Pen pen)
         {
-            Point topLeft = PictureBoxToImage(rect.Location, pictureBox);
-            Point bottomRight = PictureBoxToImage(new Point(rect.Right, rect.Bottom), pictureBox);
-            return new System.Drawing.Rectangle(topLeft, new Size(bottomRight.X - topLeft.X, bottomRight.Y - topLeft.Y));
+            switch (shape)
+            {
+                case ShapeType.Rectangle:
+                    g.DrawRectangle(pen, rect);
+                    break;
+                case ShapeType.Triangle:
+                    Point p1 = new Point(rect.Left + rect.Width / 2, rect.Top);
+                    Point p2 = new Point(rect.Left, rect.Bottom);
+                    Point p3 = new Point(rect.Right, rect.Bottom);
+                    g.DrawPolygon(pen, new Point[] { p1, p2, p3 });
+                    break;
+                case ShapeType.Circle:
+                    g.DrawEllipse(pen, rect);
+                    break;
+            }
         }
 
         private void ApplyColorMapping()
@@ -234,6 +259,21 @@ namespace X_Ray_Images_Project
                 coloredPictureBox.Image = resizedColoredImage;
             }
         }
+
+        private Point PictureBoxToImage(Point pt, PictureBox pictureBox)
+        {
+            float xRatio = (float)originalRadiograph.Width / pictureBox.ClientSize.Width;
+            float yRatio = (float)originalRadiograph.Height / pictureBox.ClientSize.Height;
+            return new Point((int)(pt.X * xRatio), (int)(pt.Y * yRatio));
+        }
+
+        private System.Drawing.Rectangle PictureBoxToImage(System.Drawing.Rectangle rect, PictureBox pictureBox)
+        {
+            Point topLeft = PictureBoxToImage(rect.Location, pictureBox);
+            Point bottomRight = PictureBoxToImage(new Point(rect.Right, rect.Bottom), pictureBox);
+            return new System.Drawing.Rectangle(topLeft, new Size(bottomRight.X - topLeft.X, bottomRight.Y - topLeft.Y));
+        }
+
 
 
         private void ApplyColorMappingToRectangle(System.Drawing.Rectangle rect)
@@ -355,51 +395,6 @@ namespace X_Ray_Images_Project
             }
         }
 
-        public enum ShapeType
-        {
-            Rectangle,
-            Triangle,
-            Circle
-        }
-        private ShapeType currentShape = ShapeType.Rectangle;
-
-        private void comboSelectShape_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            switch (comboSelectShape.SelectedItem.ToString())
-            {
-                case "Rectangle":
-                    currentShape = ShapeType.Rectangle;
-                    break;
-                case "Triangle":
-                    currentShape = ShapeType.Triangle;
-                    break;
-                case "Circle":
-                    currentShape = ShapeType.Circle;
-                    break;
-            }
-        }
-
-        private void DrawShape(Graphics g, System.Drawing.Rectangle rect, ShapeType shape, Pen pen)
-        {
-            switch (shape)
-            {
-                case ShapeType.Rectangle:
-                    g.DrawRectangle(pen, rect);
-                    break;
-                case ShapeType.Triangle:
-                    Point p1 = new Point(rect.Left + rect.Width / 2, rect.Top);
-                    Point p2 = new Point(rect.Left, rect.Bottom);
-                    Point p3 = new Point(rect.Right, rect.Bottom);
-                    g.DrawPolygon(pen, new Point[] { p1, p2, p3 });
-                    break;
-                case ShapeType.Circle:
-                    g.DrawEllipse(pen, rect);
-                    break;
-            }
-        }
-
-
-
         private void btnUndo_Click(object sender, EventArgs e)
         {
             if (selectedAreas.Count > 0)
@@ -467,35 +462,31 @@ namespace X_Ray_Images_Project
                     saveFileDialog.Filter = "JPEG Image|*.jpg|PNG Image|*.png";
                     if (saveFileDialog.ShowDialog() == DialogResult.OK)
                     {
-                        //  ÕœÌœ ‰Ê⁄ «·’Ê—…
                         ImageFormat format = ImageFormat.Jpeg;
                         if (saveFileDialog.FileName.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
                         {
                             format = ImageFormat.Png;
                         }
 
-                        // ≈‰‘«¡ ‰”Œ… „‰ «·’Ê—… ·≈÷«›… «·‰’
                         using (Bitmap bitmap = new Bitmap(coloredImage.Width, coloredImage.Height))
                         {
                             using (Graphics graphics = Graphics.FromImage(bitmap))
                             {
                                 graphics.DrawImage(coloredImage, new Point(0, 0));
 
-                                // ≈⁄œ«œ«  «·‰’
                                 string commentText = commentTextBox.Text;
                                 System.Drawing.Font font = new System.Drawing.Font("Arial", 20, System.Drawing.FontStyle.Bold);
-                                Color textColor = Color.Red; // ·Ê‰ «·‰’
-                                PointF textLocation = new PointF(10, coloredImage.Height - 40); // „Êﬁ⁄ «·‰’ ⁄·Ï «·’Ê—…
+                                Color textColor = Color.Red;
+                                PointF textLocation = new PointF(10, coloredImage.Height - 40);
 
-                                // —”„ «·‰’ ⁄·Ï «·’Ê—…
                                 using (Brush textBrush = new SolidBrush(textColor))
                                 {
                                     graphics.DrawString(commentText, font, textBrush, textLocation);
                                 }
                             }
 
-                            // Õ›Ÿ «·’Ê—… «·„⁄œ·…
                             bitmap.Save(saveFileDialog.FileName, format);
+                            savedImagePath = saveFileDialog.FileName;
                             MessageBox.Show("Image saved successfully with comment", "X-Ray", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         }
                     }
@@ -517,8 +508,8 @@ namespace X_Ray_Images_Project
                 {
                     try
                     {
-                        string tempFilePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".rle");
-                        CompressAndSaveImageAsRLE(coloredImage, tempFilePath);
+                        string tempFilePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".jpg");
+                        CompressAndSaveImage(coloredImage, tempFilePath);
                         CompressImageToZip(tempFilePath, saveFileDialog.FileName);
                         File.Delete(tempFilePath);
                         MessageBox.Show("Image saved and compressed successfully.", "Save and Compress", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -535,40 +526,16 @@ namespace X_Ray_Images_Project
             }
         }
 
-        private void CompressAndSaveImageAsRLE(Bitmap image, string filePath)
+        private void CompressAndSaveImage(Bitmap image, string filePath)
         {
-            // Convert the image to RLE compressed format
-            byte[] rleData = CompressImageToRLE(image);
+            ImageCodecInfo jpgEncoder = GetEncoder(ImageFormat.Jpeg);
+            System.Drawing.Imaging.Encoder myEncoder = System.Drawing.Imaging.Encoder.Quality;
+            EncoderParameters myEncoderParameters = new EncoderParameters(1);
 
-            // Save the RLE data to file
-            File.WriteAllBytes(filePath, rleData);
-        }
+            EncoderParameter myEncoderParameter = new EncoderParameter(myEncoder, 50L);
+            myEncoderParameters.Param[0] = myEncoderParameter;
 
-        private byte[] CompressImageToRLE(Bitmap image)
-        {
-            List<byte> rleData = new List<byte>();
-            for (int y = 0; y < image.Height; y++)
-            {
-                for (int x = 0; x < image.Width; x++)
-                {
-                    Color pixelColor = image.GetPixel(x, y);
-                    byte[] colorBytes = { pixelColor.R, pixelColor.G, pixelColor.B };
-                    int runLength = 1;
-
-                    // Check for run-length
-                    while (x + 1 < image.Width && image.GetPixel(x + 1, y) == pixelColor)
-                    {
-                        runLength++;
-                        x++;
-                    }
-
-                    // Store run-length and color data
-                    rleData.Add((byte)runLength);
-                    rleData.AddRange(colorBytes);
-                }
-            }
-
-            return rleData.ToArray();
+            image.Save(filePath, jpgEncoder, myEncoderParameters);
         }
 
         private void CompressImageToZip(string imageFilePath, string zipFilePath)
@@ -581,7 +548,19 @@ namespace X_Ray_Images_Project
                 }
             }
         }
- 
+        private ImageCodecInfo GetEncoder(ImageFormat format)
+        {
+            ImageCodecInfo[] codecs = ImageCodecInfo.GetImageDecoders();
+            foreach (ImageCodecInfo codec in codecs)
+            {
+                if (codec.FormatID == format.Guid)
+                {
+                    return codec;
+                }
+            }
+            return null;
+        }
+
 
         private void compareBtn_Click(object sender, EventArgs e)
         {
@@ -611,27 +590,23 @@ namespace X_Ray_Images_Project
         {
             if (coloredImage != null)
             {
-                // ﬁ„ »≈‰‘«¡ ‰”Œ… „‰ «·’Ê—… «·√’·Ì… ·≈÷«›… «·‰’ ⁄·ÌÂ«
                 Bitmap tempImage = new Bitmap(coloredImage);
 
                 using (Graphics g = Graphics.FromImage(tempImage))
                 {
-                    using (System.Drawing.Font arialFont = new System.Drawing.Font("Arial", 40)) //  €ÌÌ— ÕÃ„ «·Œÿ ≈·Ï 40
+                    using (System.Drawing.Font arialFont = new System.Drawing.Font("Arial", 40)) 
                     {
-                        // Õ”«» „Ê÷⁄ «·‰’ ·ÌﬂÊ‰ ›Ì √”›· «·’Ê—…
                         SizeF textSize = g.MeasureString(commentTextBox.Text, arialFont);
                         float x = 10;
-                        float y = tempImage.Height - textSize.Height - 10; // Ê÷⁄ «·‰’ ›Ì √”›· «·’Ê—… „⁄ Â«„‘ 10 »ﬂ”·
+                        float y = tempImage.Height - textSize.Height - 10;
 
                         g.DrawString(commentTextBox.Text, arialFont, Brushes.Red, new PointF(x, y));
                     }
                 }
 
-                // ﬁ„ » ÕœÌÀ «·’Ê—… ›Ì PictureBox ·⁄—÷ «· ⁄·Ìﬁ
                 resizedColoredImage = ResizeImage(tempImage, coloredPictureBox.Width, coloredPictureBox.Height);
                 coloredPictureBox.Image = resizedColoredImage;
 
-                //  Œ·’ „‰ «·’Ê—… «·„ƒﬁ … · Ã‰»  ”—» «·–«ﬂ—…
                 tempImage.Dispose();
             }
         }
@@ -653,7 +628,6 @@ namespace X_Ray_Images_Project
             pdfStream = new MemoryStream();
             PdfWriter.GetInstance(doc, pdfStream);
             doc.Open();
-
             // Add title
             iTextSharp.text.Font titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 18);
             Paragraph title = new Paragraph("Medical Report", titleFont)
@@ -661,7 +635,6 @@ namespace X_Ray_Images_Project
                 Alignment = Element.ALIGN_CENTER
             };
             doc.Add(title);
-
             // Add date
             iTextSharp.text.Font dateFont = FontFactory.GetFont(FontFactory.HELVETICA, 12);
             Paragraph date = new Paragraph("Date: " + DateTime.Now.ToString("dd/MM/yyyy"), dateFont)
@@ -669,7 +642,6 @@ namespace X_Ray_Images_Project
                 Alignment = Element.ALIGN_RIGHT
             };
             doc.Add(date);
-
             // Add age
             if (!string.IsNullOrEmpty(ageTextBox.Text))
             {
@@ -679,9 +651,6 @@ namespace X_Ray_Images_Project
                 doc.Add(age);
                 doc.Add(new Paragraph("\n"));
             }
-
-
-
             // Add gender
             if (genderComboBox.SelectedItem != null)
             {
@@ -693,10 +662,8 @@ namespace X_Ray_Images_Project
                 doc.Add(gender);
                 doc.Add(new Paragraph("\n"));
             }
-
             // Add space
             doc.Add(new Paragraph("\n"));
-
             // Add comment
             if (!string.IsNullOrEmpty(commentTextBox.Text))
             {
@@ -706,7 +673,6 @@ namespace X_Ray_Images_Project
                 doc.Add(comment);
                 doc.Add(new Paragraph("\n"));
             }
-
             // Add X-ray image
             if (coloredImage != null)
             {
@@ -720,7 +686,6 @@ namespace X_Ray_Images_Project
                 xrayImage.Alignment = Element.ALIGN_CENTER;
                 doc.Add(xrayImage);
             }
-
             // Add audio comment link
             if (!string.IsNullOrEmpty(outputFilename) && File.Exists(outputFilename))
             {
@@ -731,12 +696,8 @@ namespace X_Ray_Images_Project
                 };
                 doc.Add(audioLink);
             }
-
-
-
             // Finalize the document
             doc.Close();
-
             MessageBox.Show("Medical report created successfully. You can now save or compress the report.", "Report", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
@@ -835,33 +796,25 @@ namespace X_Ray_Images_Project
 
         public static Bitmap ApplyFourierTransform(Bitmap originalImage)
         {
-            // Create grayscale filter (BT709)
             Grayscale filter1 = new Grayscale(0.2125, 0.7154, 0.0721);
 
-            // Apply the filter
             Bitmap grayImage = filter1.Apply(originalImage);
 
-            // Resize the image to the nearest power of 2 dimensions
             int newWidth = (int)Math.Pow(2, Math.Ceiling(Math.Log(grayImage.Width, 2)));
             int newHeight = (int)Math.Pow(2, Math.Ceiling(Math.Log(grayImage.Height, 2)));
 
             ResizeBilinear resizeFilter = new ResizeBilinear(newWidth, newHeight);
             Bitmap resizedImage = resizeFilter.Apply(grayImage);
 
-            // Convert the resized image to a complex image
             ComplexImage complexImage = ComplexImage.FromBitmap(resizedImage);
 
-            // Perform forward Fourier transform
             complexImage.ForwardFourierTransform();
 
-            // Apply a high-pass filter with more aggressive settings
             FrequencyFilter highPassFilter = new FrequencyFilter(new IntRange(10, Math.Max(newWidth, newHeight) / 2));
             highPassFilter.Apply(complexImage);
 
-            // Perform the inverse Fourier transform
             complexImage.BackwardFourierTransform();
 
-            // Convert the complex image back to a bitmap
             Bitmap filteredImage = complexImage.ToBitmap();
 
             // Enhance contrast
@@ -877,17 +830,7 @@ namespace X_Ray_Images_Project
 
         private void buttonOpenShareForm_Click(object sender, EventArgs e)
         {
-            // ﬁ„ » ÕœÌœ «·„”«— «·›⁄·Ì ··„·› «·„÷€Êÿ
-            string zipFilePath = "C:/Users/Mhammad/Desktop/saved images/my-tv-master.zip";
-
-            //  Õﬁﬁ „‰ ÊÃÊœ «·„·›
-            if (!File.Exists(zipFilePath))
-            {
-                MessageBox.Show($"File not found: {zipFilePath}");
-                return;
-            }
-
-            ShareForm shareForm = new ShareForm(zipFilePath);
+            ShareForm shareForm = new ShareForm(savedImagePath, savedAudioPath);
             shareForm.Show();
         }
     }

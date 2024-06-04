@@ -11,6 +11,7 @@ namespace X_Ray_Images_Project
         private string tempFilename;
         private WaveInEvent waveIn;
         private WaveFileWriter writer;
+        private string _savedAudioPath;
 
         public RecordForm()
         {
@@ -43,7 +44,7 @@ namespace X_Ray_Images_Project
 
             if (saveFileDialog.ShowDialog() == DialogResult.OK)
             {
-                string outputFilename = tempFilename; // Use the temporary file as the source WAV
+                string outputFilename = tempFilename;
                 StartRecording(outputFilename, saveFileDialog.FileName);
             }
         }
@@ -125,18 +126,18 @@ namespace X_Ray_Images_Project
             }
         }
 
-        // save record
         private void saveButton_Click(object sender, EventArgs e)
         {
             SaveFileDialog saveFileDialog = new SaveFileDialog
             {
-                Filter = "WAV Files|*.wav",
+                Filter = "MP3 Files|*.mp3",
                 Title = "Save Audio As"
             };
 
             if (saveFileDialog.ShowDialog() == DialogResult.OK)
             {
                 File.Copy(tempFilename, saveFileDialog.FileName, true);
+                _savedAudioPath = saveFileDialog.FileName;
                 MessageBox.Show("Recording saved successfully.", "Save Audio", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }

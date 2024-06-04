@@ -90,6 +90,7 @@
             comboColorMap.FormattingEnabled = true;
             comboColorMap.Items.AddRange(new object[] { "Hot", "Cool", "Jet" });
             comboColorMap.Location = new Point(363, 53);
+            comboColorMap.SelectedIndex = 0;
             comboColorMap.Name = "comboColorMap";
             comboColorMap.Size = new Size(115, 23);
             comboColorMap.TabIndex = 3;
@@ -285,6 +286,7 @@
             comboSelectShape.Items.AddRange(new object[] { "Rectangle", "Triangle", "Circle" });
             comboSelectShape.Location = new Point(109, 53);
             comboSelectShape.Name = "comboSelectShape";
+            comboSelectShape.SelectedIndex = 0;
             comboSelectShape.Size = new Size(121, 23);
             comboSelectShape.TabIndex = 19;
             comboSelectShape.SelectedIndexChanged += comboSelectShape_SelectedIndexChanged;

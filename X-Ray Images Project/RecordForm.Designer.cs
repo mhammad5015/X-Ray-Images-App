@@ -72,7 +72,7 @@
             this.compressButton.UseVisualStyleBackColor = true;
             this.compressButton.Click += new System.EventHandler(this.compressButton_Click);
             // 
-            // saveButton
+            // saveAudioButton_Click
             // 
             this.saveButton.Location = new System.Drawing.Point(94, 43);
             this.saveButton.Name = "saveButton";

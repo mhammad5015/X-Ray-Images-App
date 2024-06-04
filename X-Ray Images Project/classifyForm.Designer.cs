@@ -28,22 +28,12 @@
         /// </summary>
         private void InitializeComponent()
         {
-            labelLoadImage = new Label();
             buttonLoadImage = new Button();
             pictureBox = new PictureBox();
             buttonClassify = new Button();
             textBoxClassification = new TextBox();
             ((System.ComponentModel.ISupportInitialize)pictureBox).BeginInit();
             SuspendLayout();
-            // 
-            // labelLoadImage
-            // 
-            labelLoadImage.AutoSize = true;
-            labelLoadImage.Location = new Point(10, 10);
-            labelLoadImage.Name = "labelLoadImage";
-            labelLoadImage.Size = new Size(119, 15);
-            labelLoadImage.TabIndex = 0;
-            labelLoadImage.Text = "Load an X-ray image:";
             // 
             // buttonLoadImage
             // 
@@ -60,7 +50,7 @@
             pictureBox.BorderStyle = BorderStyle.FixedSingle;
             pictureBox.Location = new Point(10, 40);
             pictureBox.Name = "pictureBox";
-            pictureBox.Size = new Size(400, 300);
+            pictureBox.Size = new Size(400, 333);
             pictureBox.SizeMode = PictureBoxSizeMode.Zoom;
             pictureBox.TabIndex = 2;
             pictureBox.TabStop = false;
@@ -70,9 +60,9 @@
             // 
             // buttonClassify
             // 
-            buttonClassify.Location = new Point(100, 358);
+            buttonClassify.Location = new Point(15, 385);
             buttonClassify.Name = "buttonClassify";
-            buttonClassify.Size = new Size(100, 23);
+            buttonClassify.Size = new Size(123, 23);
             buttonClassify.TabIndex = 4;
             buttonClassify.Text = "Classify";
             buttonClassify.UseVisualStyleBackColor = true;
@@ -80,10 +70,10 @@
             // 
             // textBoxClassification
             // 
-            textBoxClassification.Location = new Point(206, 358);
+            textBoxClassification.Location = new Point(144, 385);
             textBoxClassification.Name = "textBoxClassification";
             textBoxClassification.ReadOnly = true;
-            textBoxClassification.Size = new Size(100, 23);
+            textBoxClassification.Size = new Size(260, 23);
             textBoxClassification.TabIndex = 6;
             // 
             // classifyForm
@@ -95,7 +85,6 @@
             Controls.Add(textBoxClassification);
             Controls.Add(pictureBox);
             Controls.Add(buttonLoadImage);
-            Controls.Add(labelLoadImage);
             Name = "classifyForm";
             Text = "X-ray Image Classifier";
             ((System.ComponentModel.ISupportInitialize)pictureBox).EndInit();
@@ -103,7 +92,6 @@
             PerformLayout();
         }
 
-        private Label labelLoadImage;
         private Button buttonLoadImage;
         private PictureBox pictureBox;
         private Button buttonClassify;

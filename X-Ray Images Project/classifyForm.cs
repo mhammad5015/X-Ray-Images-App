@@ -14,6 +14,8 @@ namespace X_Ray_Images_Project
     {
         private Rectangle selectedRectangle;
         private Point startPoint;
+        private Bitmap originalRadiograph;
+        private Bitmap resizedImage;
         public classifyForm()
         {
             InitializeComponent();
@@ -21,24 +23,47 @@ namespace X_Ray_Images_Project
 
         private void buttonLoadImage_Click(object sender, EventArgs e)
         {
-            using (OpenFileDialog openFileDialog = new OpenFileDialog())
+            OpenFileDialog openFileDialog = new OpenFileDialog
             {
-                openFileDialog.Filter = "Image Files|*.jpg;*.jpeg;*.png;*.bmp;*.gif";
-                if (openFileDialog.ShowDialog() == DialogResult.OK)
+                Filter = "Image Files (*.jpg, *.png)|*.jpg;*.png"
+            };
+
+            if (openFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                try
                 {
-                    pictureBox.Image = Image.FromFile(openFileDialog.FileName);
+                    originalRadiograph = new Bitmap(openFileDialog.FileName);
+                    resizedImage = ResizeImage(originalRadiograph, pictureBox.Width, pictureBox.Height);
+                    pictureBox.Image = resizedImage;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"An error occurred while loading the image: {ex.Message}");
                 }
             }
         }
 
+        public Bitmap ResizeImage(Bitmap originalImage, int targetWidth, int targetHeight)
+        {
+            Bitmap resizedImage = new Bitmap(targetWidth, targetHeight);
+            using (Graphics g = Graphics.FromImage(resizedImage))
+            {
+                g.DrawImage(originalImage, 0, 0, targetWidth, targetHeight);
+            }
+            return resizedImage;
+        }
+
         private void pictureBox_MouseDown(object sender, MouseEventArgs e)
         {
-            startPoint = e.Location;
+            if (e.Button == MouseButtons.Left && originalRadiograph != null)
+            {
+                startPoint = e.Location;
+            }
         }
 
         private void pictureBox_MouseMove(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Left)
+            if (e.Button == MouseButtons.Left && originalRadiograph != null)
             {
                 Point endPoint = e.Location;
                 selectedRectangle = new Rectangle(
@@ -54,28 +79,8 @@ namespace X_Ray_Images_Project
         {
             if (selectedRectangle != null && selectedRectangle.Width > 0 && selectedRectangle.Height > 0)
             {
-                using (Pen pen = new Pen(Color.Red, 2))
-                {
-                    e.Graphics.DrawRectangle(pen, selectedRectangle);
-                }
-            }
-        }
-
-        private string ClassifyRegion(Rectangle region, Bitmap image)
-        {
-            // Placeholder function: replace with actual classification logic
-            Random random = new Random();
-            int severity = random.Next(0, 3);
-            switch (severity)
-            {
-                case 0:
-                    return "Mild";
-                case 1:
-                    return "Moderate";
-                case 2:
-                    return "Severe";
-                default:
-                    return "Unknown";
+                using Pen pen = new Pen(Color.Green, 2);
+                e.Graphics.DrawRectangle(pen, selectedRectangle);
             }
         }
 
@@ -100,8 +105,47 @@ namespace X_Ray_Images_Project
                 selectedRectangle.Width * image.Width / pictureBox.Width,
                 selectedRectangle.Height * image.Height / pictureBox.Height);
 
+            // Ensure the region is within the image bounds
+            region.X = Math.Max(0, region.X);
+            region.Y = Math.Max(0, region.Y);
+            region.Width = Math.Min(image.Width - region.X, region.Width);
+            region.Height = Math.Min(image.Height - region.Y, region.Height);
+
             string result = ClassifyRegion(region, image);
             textBoxClassification.Text = result;
+        }
+
+        private string ClassifyRegion(Rectangle region, Bitmap image)
+        {
+            int totalIntensity = 0;
+            int pixelCount = 0;
+
+            int startX = Math.Max(0, region.X);
+            int startY = Math.Max(0, region.Y);
+            int endX = Math.Min(image.Width, region.X + region.Width);
+            int endY = Math.Min(image.Height, region.Y + region.Height);
+
+            for (int x = startX; x < endX; x++)
+            {
+                for (int y = startY; y < endY; y++)
+                {
+                    Color pixelColor = image.GetPixel(x, y);
+                    int intensity = (pixelColor.R + pixelColor.G + pixelColor.B) / 3; 
+                    totalIntensity += intensity;
+                    pixelCount++;
+                }
+            }
+
+            if (pixelCount == 0) return "Invalid region";
+
+            int averageIntensity = totalIntensity / pixelCount;
+
+            if (averageIntensity > 200)
+                return "severe medical condition";
+            else if (averageIntensity >= 100)
+                return "Medium medical condition";
+            else
+                return "Mild medical condition";
         }
     }
 }

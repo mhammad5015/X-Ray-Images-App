@@ -1,40 +1,63 @@
-﻿using System;
+﻿
+
+using System;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using iText.IO.Image;
 using Newtonsoft.Json.Linq;
 
 namespace YourNamespace
 {
     public partial class ShareForm : Form
     {
-        private string filePath;
-        private string botToken = "7187708880:AAHTQoaHOrIALlM7TcngJ6v3-Y8GKY07ECk"; // تأكد من إدخال التوكن الصحيح
+        private string savedImagePath;
+        private string savedAudioPath;
+        private string _savedImagePath;
+        private string _savedAudioPath;
+        private string botToken = "7187708880:AAHTQoaHOrIALlM7TcngJ6v3-Y8GKY07ECk";
 
-        public ShareForm(string filePath)
+        public ShareForm(string savedImagePath, string savedAudioPath)
         {
             InitializeComponent();
-            this.filePath = filePath;
+            _savedImagePath = savedImagePath;
+            _savedAudioPath = savedAudioPath;
+
         }
 
-        private async void buttonShareOnTelegramBot_Click(object sender, EventArgs e)
+        private async Task ShareFileOnTelegramBot(string filePath, string fileType)
         {
-            if (File.Exists(filePath))
+            string chatId = await GetChatId();
+            if (!string.IsNullOrEmpty(chatId))
             {
-                string chatId = await GetChatId();
-                if (!string.IsNullOrEmpty(chatId))
+                try
                 {
-                    await ShareOnTelegramBot(filePath, chatId);
+                    using (var httpClient = new HttpClient())
+                    {
+                        using (var form = new MultipartFormDataContent())
+                        {
+                            form.Add(new StringContent(chatId), "chat_id");
+                            var fileStream = new FileStream(filePath, FileMode.Open);
+                            form.Add(new StreamContent(fileStream), fileType, Path.GetFileName(filePath));
+                            string apiMethod = fileType == "audio" ? "sendAudio" : "sendDocument";
+                            var response = await httpClient.PostAsync($"https://api.telegram.org/bot{botToken}/{apiMethod}", form);
+                            if (!response.IsSuccessStatusCode)
+                            {
+                                throw new Exception($"Response status code does not indicate success: {(int)response.StatusCode} ({response.ReasonPhrase})");
+                            }
+                            MessageBox.Show($"{fileType} shared successfully on Telegram Bot!");
+                        }
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    MessageBox.Show("Could not retrieve chat ID.");
+                    MessageBox.Show($"Error sharing {fileType}: {ex.Message}");
                 }
             }
             else
             {
-                MessageBox.Show($"File not found: {filePath}");
+                MessageBox.Show("Could not retrieve chat ID.");
             }
         }
 
@@ -72,31 +95,33 @@ namespace YourNamespace
             }
         }
 
-        private async Task ShareOnTelegramBot(string filePath, string chatId)
+        private async void buttonShareImageOnTelegramBot_Click(object sender, EventArgs e)
         {
-            try
+            if (!string.IsNullOrEmpty(_savedImagePath) && File.Exists(_savedImagePath))
             {
-                using (var httpClient = new HttpClient())
-                {
-                    using (var form = new MultipartFormDataContent())
-                    {
-                        form.Add(new StringContent(chatId), "chat_id");
-                        var fileStream = new FileStream(filePath, FileMode.Open);
-                        form.Add(new StreamContent(fileStream), "document", Path.GetFileName(filePath));
-
-                        var response = await httpClient.PostAsync($"https://api.telegram.org/bot{botToken}/sendDocument", form);
-                        if (!response.IsSuccessStatusCode)
-                        {
-                            throw new Exception($"Response status code does not indicate success: {(int)response.StatusCode} ({response.ReasonPhrase})");
-                        }
-                        MessageBox.Show("File shared successfully on Telegram Bot!");
-                    }
-                }
+                await ShareFileOnTelegramBot(_savedImagePath, "document");
             }
-            catch (Exception ex)
+            else
             {
-                MessageBox.Show($"Error sharing file: {ex.Message}");
+                MessageBox.Show("No image file selected or file does not exist.");
+            }
+        }
+
+        private async void buttonShareAudioOnTelegramBot_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Filter = "Audio Files|*.mp3;*.wav;*.wma";
+            if (openFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                _savedAudioPath = openFileDialog.FileName;
+                MessageBox.Show($"Audio file selected: {_savedAudioPath}");
+                await ShareFileOnTelegramBot(_savedAudioPath, "audio");
             }
         }
     }
 }
+
+
+
+
+
