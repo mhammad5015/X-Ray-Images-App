@@ -30,6 +30,11 @@ In the realm of modern medicine, X-ray images play a crucial role in diagnosing 
 11. **File Compression**: Compress files (report, modified image, audio file) before storing them on the local disk.
 12. **Social Media Sharing**: Share the colored X-ray image, voice annotation, or compressed file via social media platforms like WhatsApp or Telegram.
 
+## Frameworks and Languages
+- .NET 8.0: The application is built using the .NET 8.0 framework, leveraging its powerful capabilities for building robust and scalable desktop applications.
+- C#: The primary programming language used for developing the application, providing object-oriented features and efficient memory management.
+- Windows Forms: Used to create the graphical user interface (GUI), offering a wide range of controls and components for desktop application development
+
 ## Installation
 
 1. Clone the repository:
